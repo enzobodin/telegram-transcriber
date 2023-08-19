@@ -1,7 +1,7 @@
 FROM python:3.10.11-slim
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-    ffmpeg
+    ffmpeg, flac
 
 WORKDIR /app
 COPY . /app
