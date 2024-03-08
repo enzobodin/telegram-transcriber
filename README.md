@@ -1,2 +1,3 @@
 # telegram-transcriber 
-Sort of forked from https://github.com/ckaytev/tgisper
+Based on https://github.com/ckaytev/tgisper  
+Using Google Speech Recognition
