@@ -1,8 +1,11 @@
-import logging, os, telebot, time
+import logging
+import os
+import time
+from typing import BinaryIO
+import telebot
 import speech_recognition as sr
 from pydub import AudioSegment
 from faster_whisper import WhisperModel
-from typing import BinaryIO
 import ffmpeg
 import numpy as np
 
@@ -21,38 +24,33 @@ elif mode == "google":
 else:
     raise ValueError("Invalid mode, select either whisper or google")
 
-def googleMode(voice_audio):
-        start_time = time.time()
-        with open('audiovoice.ogg', 'wb') as f:
-            f.write(voice_audio)
-        audio = AudioSegment.from_file("audiovoice.ogg", format='ogg')
-        audio.export('audio.wav', format='wav')
-        with sr.AudioFile('audio.wav') as source:
-            audio_data = sr.Recognizer().record(source)
-            text = sr.Recognizer().recognize_google(audio_data, language="fr-FR")
-        processing_time = (time.time() - start_time)
-        result = f"▶️ {text}\n⌛ *Processing time*: {processing_time:.4f} seconds"
-        return result
+def google_mode(voice_audio):
+    start_time = time.time()
+    with open('audiovoice.ogg', 'wb') as f:
+        f.write(voice_audio)
+    audio = AudioSegment.from_file("audiovoice.ogg", format='ogg')
+    audio.export('audio.wav', format='wav')
+    with sr.AudioFile('audio.wav') as source:
+        audio_data = sr.Recognizer().record(source)
+        text = sr.Recognizer().recognize_google(audio_data, language="fr-FR")
+    processing_time = time.time() - start_time
+    result = f"▶️ {text}\n⌛ *Processing time*: {processing_time:.4f} seconds"
+    return result
 
-def whisperMode(voice_audio):
+def whisper_mode(voice_audio):
     start_time = time.time()
     voice = load_audio(voice_audio)
     segments, _ = model.transcribe(audio=voice, vad_filter=True)
-    processing_time = (time.time() - start_time)
+    processing_time = time.time() - start_time
     text = "".join([segment.text for segment in segments])
     result = f"▶️ {text}\n⌛ *Processing time*: {processing_time:.4f} seconds\n🪄 *ASR_Model*: {model_name}"
     return result
 
-@bot.message_handler(
-    content_types=["voice"],
-    chat_types=["private", "group", "supergroup"],
-)
-
-def load_audio(binary_file: BinaryIO, sr: int = 16000):
+def load_audio(binary_file: BinaryIO):
     try:
         out, _ = (
             ffmpeg.input("pipe:", threads=0)
-            .output("-", format="s16le", acodec="pcm_s16le", ac=1, ar=sr)
+            .output("-", format="s16le", acodec="pcm_s16le", ac=1, ar=16000)
             .run(cmd="ffmpeg", capture_stdout=True, capture_stderr=True, input=binary_file)
         )
     except ffmpeg.Error as e:
@@ -60,6 +58,10 @@ def load_audio(binary_file: BinaryIO, sr: int = 16000):
 
     return np.frombuffer(out, np.int16).flatten().astype(np.float32) / 32768.0
 
+@bot.message_handler(
+    content_types=["voice"],
+    chat_types=["private", "group", "supergroup"],
+)
 def transcribe_voice_message(message):
     u_id=message.chat.username
     if u_id in allowed_users:
@@ -67,9 +69,9 @@ def transcribe_voice_message(message):
         voice_audio = bot.download_file(voice_meta.file_path)
 
         if mode == "google":
-            result = googleMode(voice_audio)
+            result = google_mode(voice_audio)
         elif mode == "whisper":
-            result = whisperMode(voice_audio)
+            result = whisper_mode(voice_audio)
 
         bot.reply_to(message, result, parse_mode='Markdown')
     else:

@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  telegram-transcriber:
+    image: ghcr.io/enzbdn/telegram-transcriber:latest
+    container_name: telegram-transcriber
+    environment:
+      - BOT_ID=
+      - ALLOWED_USERS=[@user, @user2, @user3]
+      - ASR_MODEL=
+      - MODE=whisper
+    restart: unless-stopped
