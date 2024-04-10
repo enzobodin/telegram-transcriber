@@ -1,3 +1,6 @@
 pytelegrambotapi
 SpeechRecognition
 pydub
+numpy
+faster-whisper
+ffmpeg-python
