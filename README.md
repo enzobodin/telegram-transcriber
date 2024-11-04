@@ -10,4 +10,7 @@ Using Google Speech Recognition and OpenAI Whisper model.
     - `MODE`: ASR mode to use (`whisper` or `google`)
 
 ## How to run
-Update variables in docker-compose.yml and run itb
+Update variables in docker-compose.yml and run it
+
+##TO DO
+- [ ] Add remote whisper server
