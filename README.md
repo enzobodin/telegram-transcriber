@@ -12,5 +12,5 @@ Using Google Speech Recognition and OpenAI Whisper model.
 ## How to run
 Update variables in docker-compose.yml and run it
 
-##TO DO
+## TO DO
 - [ ] Add remote whisper server
