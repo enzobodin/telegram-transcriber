@@ -2,6 +2,7 @@ import logging
 import os
 import time
 from typing import BinaryIO
+import requests
 import telebot
 import speech_recognition as sr
 from pydub import AudioSegment
@@ -14,15 +15,10 @@ allowed_users = os.environ['ALLOWED_USERS']
 precision = os.getenv("PRECISION", "int8")
 model_name = os.getenv("ASR_MODEL", "small")
 mode = os.getenv("MODE")
+model = WhisperModel(model_name, device="cpu", compute_type=precision) if mode == "faster_whisper" else None
+whisper_server_url = os.getenv("WHISPER_SERVER_URL")
 
 bot = telebot.TeleBot(bot_id)
-
-if mode == "whisper":
-    model = WhisperModel(model_name, device="cpu", compute_type=precision)
-elif mode == "google":
-    pass
-else:
-    raise ValueError("Invalid mode, select either whisper or google")
 
 def google_mode(voice_audio):
     start_time = time.time()
@@ -46,6 +42,20 @@ def whisper_mode(voice_audio):
     result = f"▶️ {text}\n⌛ *Processing time*: {processing_time:.4f} seconds\n🪄 *ASR_Model*: {model_name}"
     return result
 
+def whisper_server_mode(voice_audio):
+    start_time = time.time()
+    response = requests.post(
+        f"{whisper_server_url}/asr",
+        files={'audio_file': ('audio.ogg', voice_audio)},
+        params = {'output': 'json'},
+        timeout=30
+    )
+    response.raise_for_status()
+    text = response.json().get("text", "")
+    processing_time = time.time() - start_time
+    result = f"▶️ {text}\n⌛ *Processing time*: {processing_time:.4f} seconds\n🌐 *Whisper Server*"
+    return result
+
 def load_audio(binary_file: BinaryIO):
     try:
         out, _ = (
@@ -63,15 +73,19 @@ def load_audio(binary_file: BinaryIO):
     chat_types=["private", "group", "supergroup"],
 )
 def transcribe_voice_message(message):
-    u_id=message.chat.username
+    u_id = message.chat.username
     if u_id in allowed_users:
         voice_meta = bot.get_file(message.voice.file_id)
         voice_audio = bot.download_file(voice_meta.file_path)
 
         if mode == "google":
             result = google_mode(voice_audio)
-        elif mode == "whisper":
+        elif mode == "faster_whisper":
             result = whisper_mode(voice_audio)
+        elif mode == "whisper_server":
+            result = whisper_server_mode(voice_audio)
+        else:
+            result = "Invalid mode, select either faster_whisper, google, or whisper_server in your deployment configuration"
 
         bot.reply_to(message, result, parse_mode='Markdown')
     else:
